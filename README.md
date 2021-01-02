@@ -1,5 +1,5 @@
 # Dtls test code 
-
+This project contains a small demo of dtls using mbedtls
 
 ## Security
 Generate a self signed certificate using:

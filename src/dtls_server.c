@@ -106,7 +106,6 @@ static void my_debug(void* ctx, int level,
 int dtls_main(void) {
     int ret, len;
     mbedtls_net_context listen_fd, client_fd;
-    unsigned char buf[1024];
     const char* pers = "dtls_server";
     unsigned char client_ip[16] = {0};
     size_t cliip_len;
@@ -317,16 +316,11 @@ reset:
 
     // Keep the connection with the client open until we timeout or the connection is closed.
     while (1) {
-        /*
-         * 6. Read the echo Request
-         */
-        printf("  < Read from client:");
-        fflush(stdout);
+        unsigned char recv_buff[1024];
+        len = sizeof(recv_buff) - 1;
+        memset(recv_buff, 0, sizeof(recv_buff));
 
-        len = sizeof(buf) - 1;
-        memset(buf, 0, sizeof(buf));
-
-        do ret = mbedtls_ssl_read(&ssl, buf, len);
+        do ret = mbedtls_ssl_read(&ssl, recv_buff, len);
         while (ret == MBEDTLS_ERR_SSL_WANT_READ ||
                ret == MBEDTLS_ERR_SSL_WANT_WRITE);
 
@@ -348,15 +342,13 @@ reset:
         }
 
         len = ret;
-        printf(" %d bytes read\n\n%s\n\n", len, buf);
+        printf(" %d bytes read: [%s]\n", len, recv_buff);
 
-        /*
-         * 7. Write the 200 Response
-         */
-        printf("  > Write to client:");
-        fflush(stdout);
+        unsigned char send_buff[1024];
+        unsigned int send_len = snprintf((char*)send_buff, sizeof(send_buff)-1, "Why did you send: %s? Seriously, what is your problem?", recv_buff);
+        printf("Writing to client: %s\n", send_buff);
 
-        do ret = mbedtls_ssl_write(&ssl, buf, len);
+        do ret = mbedtls_ssl_write(&ssl, send_buff, send_len+1);
         while (ret == MBEDTLS_ERR_SSL_WANT_READ ||
                ret == MBEDTLS_ERR_SSL_WANT_WRITE);
 
@@ -366,7 +358,7 @@ reset:
         }
 
         len = ret;
-        printf(" %d bytes written\n\n%s\n\n", len, buf);
+        printf(" %d bytes written\n\n%s\n\n", len, recv_buff);
     }
 
     /*
